@@ -1,8 +1,8 @@
 name: TestFlight
 
 # Signed Release archive of the iOS app (io.nintondo.osx, iPhone + iPad), exported as an
-# App Store .ipa and uploaded to TestFlight. Manual run only (Actions -> TestFlight -> Run workflow);
-# workflow_dispatch becomes available once this file is on the default branch.
+# App Store .ipa and uploaded to TestFlight. Upload happens only on a manual run
+# (Actions -> TestFlight -> Run workflow) with upload=true; pushes to the PR branch archive only.
 #
 # Needs the repository secrets IOS_DIST_P12_BASE64, IOS_DIST_P12_PASSWORD,
 # IOS_PROFILE_BASE64, ASC_KEY_P8, ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID.
@@ -14,6 +14,11 @@ name: TestFlight
 # workflow removes them from the app target for this CI archive only, so one profile is enough.
 
 on:
+  # workflow_dispatch only works once this file is on the default branch. Until then a push to the
+  # PR branch runs a build/archive-only check (never uploads, see the upload step's condition).
+  push:
+    branches: [ipad-support-build-fix]
+    paths: ['.github/workflows/testflight.yml', 'ios/**', 'package.json', 'yarn.lock']
   workflow_dispatch:
     inputs:
       runner:
@@ -190,7 +195,7 @@ jobs:
           codesign -dv "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier"
 
       - name: Upload to TestFlight
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
         env:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
