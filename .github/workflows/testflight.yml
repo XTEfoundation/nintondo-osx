@@ -117,7 +117,8 @@ jobs:
           STRIP_EXTENSIONS: ${{ github.event_name != 'workflow_dispatch' || inputs.strip_extensions }}
         run: |
           # Only the BlueWallet (Nintondo OSX) app target is signed manually; pods keep their settings.
-          bundle exec ruby -rxcodeproj -e '
+          bundle exec ruby -e '
+            require "xcodeproj"
             project = Xcodeproj::Project.open("BlueWallet.xcodeproj")
             target = project.targets.find { |t| t.name == "BlueWallet" }
             if ENV["STRIP_EXTENSIONS"] == "true"
