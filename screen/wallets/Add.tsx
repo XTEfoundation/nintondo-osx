@@ -4,18 +4,16 @@ import {
   Alert,
   Keyboard,
   LayoutAnimation,
-  Linking,
   Platform,
   StyleSheet,
   TextInput,
   useColorScheme,
   View,
 } from 'react-native';
-import assert from 'assert';
 
 import triggerHapticFeedback, { HapticFeedbackTypes } from '../../blue_modules/hapticFeedback';
-import { BlueButtonLink, BlueFormLabel, BlueText } from '../../BlueComponents';
-import { HDLegacyP2PKHWallet, LightningCustodianWallet } from '../../class';
+import { BlueButtonLink, BlueFormLabel } from '../../BlueComponents';
+import { HDLegacyP2PKHWallet } from '../../class';
 import presentAlert from '../../components/Alert';
 import Button from '../../components/Button';
 import { useTheme } from '../../components/themes';
@@ -25,7 +23,6 @@ import { Chain } from '../../models/bitcoinUnits';
 import { useStorage } from '../../hooks/context/useStorage';
 import { CommonToolTipActions } from '../../typings/CommonToolTipActions';
 import { Action } from '../../components/types';
-import { getLNDHub } from '../../helpers/lndHub';
 import HeaderMenuButton from '../../components/HeaderMenuButton';
 import { useExtendedNavigation } from '../../hooks/useExtendedNavigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,7 +31,6 @@ import { RouteProp, useRoute } from '@react-navigation/native';
 import SafeAreaScrollView from '../../components/SafeAreaScrollView';
 import { BlueSpacing20, BlueSpacing40 } from '../../components/BlueSpacing';
 import { hexToUint8Array, uint8ArrayToHex } from '../../blue_modules/uint8array-extras';
-import { LightningArkWallet } from '../../class/wallets/lightning-ark-wallet.ts';
 
 enum ButtonSelected {
   // @ts-ignore: Return later to update
@@ -105,10 +101,9 @@ const WalletsAdd: React.FC = () => {
 
   // State
   const [state, dispatch] = useReducer(walletReducer, initialState);
-  const [backdoorPressed, setBackdoorPressed] = useState(0);
+  const [, setBackdoorPressed] = useState(0);
   const isLoading = state.isLoading;
   const walletBaseURI = state.walletBaseURI;
-  const selectedIndex = state.selectedIndex;
   const label = state.label;
   const selectedWalletType = state.selectedWalletType;
   const colorScheme = useColorScheme();
@@ -131,11 +126,6 @@ const WalletsAdd: React.FC = () => {
     },
     root: {
       backgroundColor: colors.elevated,
-    },
-    lndUri: {
-      borderColor: colors.formBorder,
-      borderBottomColor: colors.formBorder,
-      backgroundColor: colors.inputBackgroundColor,
     },
   };
 
@@ -219,11 +209,7 @@ const WalletsAdd: React.FC = () => {
     };
 
     return selectedWalletType === ButtonSelected.ONCHAIN ? [walletAction, entropyActions] : [walletAction];
-  }, [selectedWalletType, selectedIndex, entropy, words, entropyButtonText]);
-
-  const handleOnLightningArkButtonPressed = useCallback(() => {
-    confirmResetEntropy(ButtonSelected.ARK);
-  }, [confirmResetEntropy]);
+  }, [selectedWalletType, entropy, words, entropyButtonText]);
 
   // Lightning removed for NINTONDO
 
@@ -269,10 +255,6 @@ const WalletsAdd: React.FC = () => {
 
   const setIsLoading = (value: boolean) => {
     dispatch({ type: 'SET_LOADING', payload: value });
-  };
-
-  const setWalletBaseURI = (value: string) => {
-    dispatch({ type: 'SET_WALLET_BASE_URI', payload: value });
   };
 
   const setSelectedIndex = (value: number) => {
@@ -333,10 +315,6 @@ const WalletsAdd: React.FC = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     Keyboard.dismiss();
     setSelectedWalletType(ButtonSelected.ONCHAIN);
-  };
-
-  const onLearnMorePressed = () => {
-    Linking.openURL('https://bluewallet.io/lightning/');
   };
 
   // Lightning button removed for NINTONDO
@@ -437,23 +415,8 @@ const styles = StyleSheet.create({
   advanced: {
     marginHorizontal: 20,
   },
-  lndUri: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderBottomWidth: 0.5,
-    minHeight: 44,
-    height: 44,
-    alignItems: 'center',
-    marginVertical: 16,
-    borderRadius: 4,
-  },
   import: {
     marginVertical: 24,
-  },
-  lndhubTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
 });
 

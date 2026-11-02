@@ -7,8 +7,7 @@ import loc from '../../loc';
 import { useStorage } from '../../hooks/context/useStorage';
 import { TWallet } from '../../class/wallets/types';
 import { WalletCarouselItem } from '../../components/WalletsCarousel';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Divider } from '@rneui/themed';
+import { Divider, Icon } from '@rneui/themed';
 import triggerHapticFeedback, { HapticFeedbackTypes } from '../../blue_modules/hapticFeedback';
 import presentAlert from '../../components/Alert';
 import { scanQrHelper } from '../../helpers/scan-qr.ts';
@@ -45,7 +44,11 @@ const IsItMyAddress: React.FC = () => {
 
   const checkAddress = () => {
     Keyboard.dismiss();
-    const cleanAddress = address.trim().replace('://', ':').replace(/^(bitcoin|nintondo)(:|=)/i, '').split('?')[0];
+    const cleanAddress = address
+      .trim()
+      .replace('://', ':')
+      .replace(/^(bitcoin|nintondo)(:|=)/i, '')
+      .split('?')[0];
     const matching: TWallet[] = [];
 
     for (const w of wallets) {
@@ -156,7 +159,7 @@ const IsItMyAddress: React.FC = () => {
           />
           {address.length > 0 && (
             <Pressable onPress={clearAddressInput} style={styles.clearButton}>
-              <Icon name="close" size={20} color="#81868e" />
+              <Icon name="close" type="material" size={20} color="#81868e" />
             </Pressable>
           )}
         </View>

@@ -160,5 +160,12 @@ dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
 }
-apply plugin: 'com.google.gms.google-services'  // Google Services plugin
+// Google Services plugin. google-services.json is gitignored (not in the repo), so only apply the
+// plugin when the file is present; otherwise fresh clones / CI fail at processGoogleServices.
+// Without it the app still builds and runs, but Firebase push notifications are not configured.
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
+    logger.warn('WARNING: android/app/google-services.json not found - building without Firebase (push notifications disabled).')
+}
 apply plugin: "com.bugsnag.android.gradle"

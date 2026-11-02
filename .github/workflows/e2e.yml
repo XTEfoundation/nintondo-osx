@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: yarn
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -44,7 +44,7 @@ jobs:
           bundle install --jobs 4 --retry 3 --quiet
 
       - name: Install Node dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Cache CocoaPods
         uses: actions/cache@v4
@@ -195,8 +195,8 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 22
-        cache: 'npm'
-        cache-dependency-path: package-lock.json
+        cache: 'yarn'
+        cache-dependency-path: yarn.lock
 
     - name: Use gradle caches
       uses: actions/cache@v4
@@ -209,7 +209,7 @@ jobs:
           ${{ runner.os }}-gradle-
 
     - name: Install node_modules
-      run: npm ci --omit=dev --yes
+      run: yarn install --frozen-lockfile --production
 
     - name: Use specific Java version for sdkmanager to work
       uses: actions/setup-java@v4
@@ -227,7 +227,7 @@ jobs:
       run: npm run e2e:release-build
 
     - name: Install dev deps needed for tests
-      run: npm i
+      run: yarn install --frozen-lockfile
 
     - name: Run tests
       uses: reactivecircus/android-emulator-runner@v2

@@ -31,11 +31,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache: 'yarn'
+          cache-dependency-path: yarn.lock
 
       - name: Install node modules
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -56,19 +56,19 @@ jobs:
       - name: Check for changes
         id: check-changes
         run: |
-          git diff --quiet package-lock.json ios/Podfile.lock || echo "Changes detected"
+          git diff --quiet yarn.lock ios/Podfile.lock || echo "Changes detected"
         continue-on-error: true
 
       - name: Stop job if no changes
         if: steps.check-changes.outcome == 'success'
         run: |
-          echo "No changes detected in package-lock.json or Podfile.lock. Stopping the job."
+          echo "No changes detected in yarn.lock or Podfile.lock. Stopping the job."
           exit 0
 
       - name: Commit changes
         if: steps.check-changes.outcome != 'success'
         run: |
-          git add package-lock.json ios/Podfile.lock
+          git add yarn.lock ios/Podfile.lock
           git commit -m "Update lock files"
 
       # Step 10: Get the list of changed files for PR description

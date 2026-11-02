@@ -25,8 +25,10 @@ export const NINTONDO_NETWORK: bitcoin.networks.Network = {
 };
 
 export const applyNintondoNetwork = (): bitcoin.networks.Network => {
-  bitcoin.networks.bitcoin = NINTONDO_NETWORK;
-  bitcoin.networks.testnet = NINTONDO_NETWORK;
+  // bitcoinjs-lib types its exported networks as readonly; we intentionally override them at runtime
+  const mutableNetworks = bitcoin.networks as unknown as Record<string, bitcoin.networks.Network>;
+  mutableNetworks.bitcoin = NINTONDO_NETWORK;
+  mutableNetworks.testnet = NINTONDO_NETWORK;
   // expose a named network for clarity when debugging
   // @ts-ignore bitcoinjs-lib Network type uses an index signature
   bitcoin.networks.nintondo = NINTONDO_NETWORK;
