@@ -2,7 +2,8 @@ name: TestFlight
 
 # Signed Release archive of the iOS app (io.nintondo.osx, iPhone + iPad), exported as an
 # App Store .ipa and uploaded to TestFlight. Upload happens only on a manual run
-# (Actions -> TestFlight -> Run workflow) with upload=true; pushes to the PR branch archive only.
+# (Actions -> TestFlight -> Run workflow) with upload=true, or on a push to the PR branch whose head
+# commit message contains "[testflight-upload]"; other pushes archive only.
 #
 # Needs the repository secrets IOS_DIST_P12_BASE64, IOS_DIST_P12_PASSWORD,
 # IOS_PROFILE_BASE64, ASC_KEY_P8, ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID.
@@ -196,7 +197,9 @@ jobs:
           codesign -dv "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier"
 
       - name: Upload to TestFlight
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
+        # Manual run with upload=true, or a push to the PR branch whose head commit message contains
+        # "[testflight-upload]" (workflow_dispatch is not available until this file is on master).
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight-upload]')) }}
         env:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
