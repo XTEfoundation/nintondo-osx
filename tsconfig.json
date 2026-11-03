@@ -13,6 +13,7 @@
     "resolveJsonModule": true,
     "module": "esnext",
     "paths": {
+      "@lodev09/react-native-true-sheet": ["./node_modules/@lodev09/react-native-true-sheet/lib/typescript/src/index"]
     }
   },
   "extends": "@react-native/typescript-config/tsconfig.json",

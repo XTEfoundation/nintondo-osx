@@ -40,10 +40,12 @@ node --version && npm --version
 * In your console:
 
 ```
-git clone https://github.com/BlueWallet/BlueWallet.git
-cd BlueWallet
-npm install
+git clone https://github.com/XTEfoundation/nintondo-osx.git
+cd nintondo-osx
+yarn install --frozen-lockfile
 ```
+
+The project uses Yarn (classic, v1) and `yarn.lock` — there is no `package-lock.json`.
 
 Please make sure that your console is running the most stable versions of npm and node (even-numbered versions).
 
@@ -74,10 +76,19 @@ npx pod-install
 npm start
 ```
 
-In another terminal window within the BlueWallet folder:
+In another terminal window within the project folder:
 ```
 npx react-native run-ios
 ```
+
+* To run on iPad (the app target supports iPhone, iPad and Mac Catalyst):
+
+```
+cd ios && bundle exec pod install && cd ..
+npx react-native run-ios --simulator "iPad Pro 13-inch (M4)"
+```
+
+Use any installed iPad simulator name (`xcrun simctl list devices`). Check portrait, landscape, Split View and Stage Manager.
 **To debug BlueWallet on the iOS Simulator, you must choose a Rosetta-compatible iOS Simulator. This can be done by navigating to the Product menu in Xcode, selecting Destination Architectures, and then opting for "Show Both." This action will reveal the simulators that support Rosetta.
 **
 
@@ -93,7 +104,8 @@ Open ios/BlueWallet.xcworkspace. Once the project loads, select the scheme/targe
 ## TESTS
 
 ```bash
-npm run test
+yarn lint
+yarn unit
 ```
 
 

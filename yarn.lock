@@ -1736,9 +1736,9 @@
     bs58check "^2.1.2"
     tslib "^2.3.0"
 
-"@lodev09/react-native-true-sheet@github:BlueWallet/react-native-true-sheet#v0.12.4":
-  version "0.12.4"
-  resolved "https://codeload.github.com/BlueWallet/react-native-true-sheet/tar.gz/f69b7286863d693e64c62006fc13c425fbe45925"
+"@lodev09/react-native-true-sheet@https://codeload.github.com/BlueWallet/react-native-true-sheet/tar.gz/5945184a2fea9fe5ba8f5cfcdb20e3fc5eed6e37":
+  version "2.0.0"
+  resolved "https://codeload.github.com/BlueWallet/react-native-true-sheet/tar.gz/5945184a2fea9fe5ba8f5cfcdb20e3fc5eed6e37#f66c46e3d71348bdf463801744fc2387da468de9"
 
 "@ngraveio/bc-ur@1.1.13", "@ngraveio/bc-ur@^1.1.5":
   version "1.1.13"
@@ -9963,9 +9963,9 @@ ripemd160@^2.0.0, ripemd160@^2.0.1, ripemd160@^2.0.2, ripemd160@^2.0.3:
     hash-base "^3.1.2"
     inherits "^2.0.4"
 
-"rn-qr-generator@https://github.com/BlueWallet/rn-qr-generator.git#731ed8eb445f65f3a659632232e18ff7e1ce56d6":
+"rn-qr-generator@https://github.com/gevgasparyan/rn-qr-generator.git#731ed8eb445f65f3a659632232e18ff7e1ce56d6":
   version "1.4.3"
-  resolved "https://github.com/BlueWallet/rn-qr-generator.git#731ed8eb445f65f3a659632232e18ff7e1ce56d6"
+  resolved "https://github.com/gevgasparyan/rn-qr-generator.git#731ed8eb445f65f3a659632232e18ff7e1ce56d6"
 
 run-parallel@^1.1.9:
   version "1.2.0"

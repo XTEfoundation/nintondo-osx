@@ -118,13 +118,10 @@ const WalletDetails: React.FC = () => {
             setIsLoading(true);
             try {
               // Clear transaction cache so full rescan happens
-              // @ts-expect-error: internal properties
               if (wallet._txs_by_external_index !== undefined) wallet._txs_by_external_index = {};
-              // @ts-expect-error: internal properties
               if (wallet._txs_by_internal_index !== undefined) wallet._txs_by_internal_index = {};
               // @ts-expect-error: internal properties
               if (wallet._txs_by_payment_code_index !== undefined) wallet._txs_by_payment_code_index = {};
-              // @ts-expect-error: internal properties
               if (wallet._utxo !== undefined) wallet._utxo = [];
               // Reset address gap so scanner starts from index 0
               // @ts-expect-error: internal properties
@@ -723,7 +720,7 @@ const WalletDetails: React.FC = () => {
                     <SecondButton onPress={navigateToSignVerify} testID="SignVerify" title={loc.addresses.sign_title} />
                   </>
                 )}
-                {(wallet instanceof AbstractHDElectrumWallet || wallet.fetchTransactions) && (
+                {(wallet instanceof AbstractHDElectrumWallet || typeof wallet.fetchTransactions === 'function') && (
                   <>
                     <BlueSpacing20 />
                     <SecondButton
