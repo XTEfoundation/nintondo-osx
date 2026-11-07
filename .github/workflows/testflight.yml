@@ -1,3 +1,4 @@
+# Trigger: dark palette build
 name: TestFlight
 
 # Signed Release archive of the iOS app (io.nintondo.osx, iPhone + iPad), exported as an
