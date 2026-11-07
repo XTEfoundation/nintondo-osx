@@ -117,7 +117,8 @@ let wasConnectedAtLeastOnce: boolean = false;
 let serverName: string | false = false;
 let disableBatching: boolean = false;
 let connectionAttempt: number = 0;
-let currentPeerIndex = Math.floor(Math.random() * hardcodedPeers.length);
+// always start with the primary server (x.cdns.trrxitte.com); the other peers are only rotated to on failure
+let currentPeerIndex = 0;
 let latestBlock: { height: number; time: number } | { height: undefined; time: undefined } = { height: undefined, time: undefined };
 const txhashHeightCache: Record<string, number> = {};
 let _realm: Realm | undefined;
@@ -277,97 +278,186 @@ async function getSavedPeer(): Promise<Peer | null> {
   }
 }
 
-export async function connectMain(): Promise<void> {
+// Connection hardening: bounded connect time, exponential backoff with jitter, and a single
+// in-flight connection attempt so error/close handlers can never spawn parallel clients.
+const CONNECT_TIMEOUT_MS = 10000;
+const RECONNECT_BASE_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 60000;
+const MAX_CONNECTION_ATTEMPTS = 5;
+let connectInFlight: Promise<void> | undefined;
+let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+let reconnectAttempt: number = 0;
+
+function getBackoffDelay(attempt: number, onion = false): number {
+  const base = onion ? RECONNECT_BASE_DELAY_MS * 4 : RECONNECT_BASE_DELAY_MS;
+  const capped = Math.min(RECONNECT_MAX_DELAY_MS, base * 2 ** Math.max(0, attempt));
+  // "equal jitter": between 50% and 100% of the capped delay, so clients don't reconnect in lockstep
+  return Math.round(capped / 2 + Math.random() * (capped / 2));
+}
+
+function teardownMainClient() {
+  const client = mainClient;
+  mainClient = undefined;
+  mainConnected = false;
+  try {
+    client?.close();
+  } catch (_) {}
+}
+
+function scheduleReconnect(onion = false) {
+  if (reconnectTimer || connectInFlight) return; // a reconnect is already pending
+  const delay = getBackoffDelay(reconnectAttempt++, onion);
+  console.log('electrum: scheduling reconnect in', delay, 'ms');
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = undefined;
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    connectMain().catch(e => console.log('electrum reconnect failed:', e));
+  }, delay);
+}
+
+/**
+ * For a peer offering both SSL and TCP, SSL is tried first and plain TCP is used only as a fallback.
+ */
+function getProtocolCandidates(peer: Peer): Array<{ port: number; protocol: 'tls' | 'tcp' }> {
+  const knownPeer = getKnownPeerByHost(peer.host);
+  const sslPort = peer.ssl;
+  const tcpPort = peer.tcp ?? (sslPort && knownPeer?.ssl === sslPort ? knownPeer?.tcp : undefined);
+  const candidates: Array<{ port: number; protocol: 'tls' | 'tcp' }> = [];
+  if (sslPort) candidates.push({ port: sslPort, protocol: 'tls' });
+  if (tcpPort) candidates.push({ port: tcpPort, protocol: 'tcp' });
+  return candidates;
+}
+
+async function initClientWithTimeout(client: typeof ElectrumClient, onClosed: () => void): Promise<any> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      // maxRetry 0: the library must not auto-reconnect on its own; reconnection is owned by this module
+      client.initElectrum({ client: 'bluewallet', version: '1.4' }, { maxRetry: 0, callback: onClosed }),
+      new Promise((_resolve, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('electrum connect timeout')), CONNECT_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function connectMainInternal(): Promise<void> {
   if (await isDisabled()) {
     console.log('Electrum connection disabled by user. Skipping connectMain call');
     return;
   }
-  let usingPeer = getNextPeer();
-  const savedPeer = await getSavedPeer();
-  if (savedPeer && savedPeer.host && (savedPeer.tcp || savedPeer.ssl)) {
-    usingPeer = savedPeer;
-  }
 
-  console.log('Using peer:', JSON.stringify(usingPeer));
-
-  try {
-    console.log('begin connection:', JSON.stringify(usingPeer));
-    mainClient = new ElectrumClient(net, tls, usingPeer.ssl || usingPeer.tcp, usingPeer.host, usingPeer.ssl ? 'tls' : 'tcp');
-
-    mainClient.onError = function (e: { message: string }) {
-      console.log('electrum mainClient.onError():', e.message);
-      if (mainConnected) {
-        // most likely got a timeout from electrum ping. lets reconnect
-        // but only if we were previously connected (mainConnected), otherwise theres other
-        // code which does connection retries
-        mainClient?.close();
-        mainClient = undefined;
-        mainConnected = false;
-        // dropping `mainConnected` flag ensures there wont be reconnection race condition if several
-        // errors triggered
-        console.log('reconnecting after socket error');
-        setTimeout(connectMain, usingPeer.host.endsWith('.onion') ? 4000 : 500);
-      }
-    };
-    const ver = await mainClient.initElectrum({ client: 'bluewallet', version: '1.4' });
-    if (ver && ver[0]) {
-      console.log('connected to ', ver);
-      serverName = ver[0];
-      mainConnected = true;
-      wasConnectedAtLeastOnce = true;
-      if (ver[0].startsWith('ElectrumPersonalServer') || ver[0].startsWith('electrs') || ver[0].startsWith('Fulcrum')) {
-        disableBatching = true;
-
-        // exeptions for versions:
-        const [electrumImplementation, electrumVersion] = ver[0].split(' ');
-        switch (electrumImplementation) {
-          case 'electrs':
-            if (semVerToInt(electrumVersion) >= semVerToInt('0.9.0')) {
-              disableBatching = false;
-            }
-            break;
-          case 'electrs-esplora':
-            // its a different one, and it does NOT support batching
-            // nop
-            break;
-          case 'Fulcrum':
-            if (semVerToInt(electrumVersion) >= semVerToInt('1.9.0')) {
-              disableBatching = false;
-            }
-            break;
-        }
-      }
-      const header = await mainClient.blockchainHeaders_subscribe();
-      if (header && header.height) {
-        latestBlock = {
-          height: header.height,
-          time: Math.floor(+new Date() / 1000),
-        };
-        // NINTONDO: Clear transaction height cache on new connection to force fresh data
-        Object.keys(txhashHeightCache).forEach(key => delete txhashHeightCache[key]);
-      }
-      // AsyncStorage.setItem(storageKey, JSON.stringify(peers));  TODO: refactor
+  for (;;) {
+    let usingPeer = getNextPeer();
+    const savedPeer = await getSavedPeer();
+    if (savedPeer && savedPeer.host && (savedPeer.tcp || savedPeer.ssl)) {
+      usingPeer = savedPeer;
     }
-  } catch (e) {
-    mainConnected = false;
-    console.log('bad connection:', JSON.stringify(usingPeer), e);
-    mainClient?.close();
-    mainClient = undefined;
-  }
+    const onion = usingPeer.host.endsWith('.onion');
 
-  if (!mainConnected) {
+    console.log('Using peer:', JSON.stringify(usingPeer));
+
+    teardownMainClient(); // never keep a stale client around while connecting a new one
+
+    for (const candidate of getProtocolCandidates(usingPeer)) {
+      if (mainConnected) break;
+      const client = new ElectrumClient(net, tls, candidate.port, usingPeer.host, candidate.protocol);
+      mainClient = client;
+      const isCurrent = () => mainClient === client;
+      const onLost = (reason: string) => {
+        if (!isCurrent()) return; // event from an old client, ignore
+        const wasConnected = mainConnected;
+        teardownMainClient();
+        if (wasConnected) {
+          // only reconnect here if we were connected; otherwise the connect loop below handles retries
+          console.log('electrum connection lost (' + reason + '), reconnecting with backoff');
+          scheduleReconnect(onion);
+        }
+      };
+      client.onError = function (e: { message: string }) {
+        console.log('electrum mainClient.onError():', e?.message);
+        onLost(e?.message ?? 'error');
+      };
+
+      try {
+        console.log('begin connection:', usingPeer.host, candidate.port, candidate.protocol);
+        const ver = await initClientWithTimeout(client, () => onLost('socket closed'));
+        if (!isCurrent()) break;
+        if (ver && ver[0]) {
+          console.log('connected to ', ver, 'via', candidate.protocol);
+          serverName = ver[0];
+          mainConnected = true;
+          wasConnectedAtLeastOnce = true;
+          connectionAttempt = 0;
+          reconnectAttempt = 0;
+          if (ver[0].startsWith('ElectrumPersonalServer') || ver[0].startsWith('electrs') || ver[0].startsWith('Fulcrum')) {
+            disableBatching = true;
+
+            // exeptions for versions:
+            const [electrumImplementation, electrumVersion] = ver[0].split(' ');
+            switch (electrumImplementation) {
+              case 'electrs':
+                if (semVerToInt(electrumVersion) >= semVerToInt('0.9.0')) {
+                  disableBatching = false;
+                }
+                break;
+              case 'electrs-esplora':
+                // its a different one, and it does NOT support batching
+                // nop
+                break;
+              case 'Fulcrum':
+                if (semVerToInt(electrumVersion) >= semVerToInt('1.9.0')) {
+                  disableBatching = false;
+                }
+                break;
+            }
+          }
+          const header = await client.blockchainHeaders_subscribe();
+          if (header && header.height) {
+            latestBlock = {
+              height: header.height,
+              time: Math.floor(+new Date() / 1000),
+            };
+            // NINTONDO: Clear transaction height cache on new connection to force fresh data
+            Object.keys(txhashHeightCache).forEach(key => delete txhashHeightCache[key]);
+          }
+          // AsyncStorage.setItem(storageKey, JSON.stringify(peers));  TODO: refactor
+        }
+      } catch (e) {
+        console.log('bad connection:', usingPeer.host, candidate.port, candidate.protocol, e);
+        if (isCurrent()) teardownMainClient();
+        // fall through to the next protocol candidate (TCP fallback after SSL)
+      }
+    }
+
+    if (mainConnected) return;
+
     console.log('retry');
     connectionAttempt = connectionAttempt + 1;
-    mainClient?.close();
-    mainClient = undefined;
-    if (connectionAttempt >= 5) {
+    teardownMainClient();
+    if (connectionAttempt >= MAX_CONNECTION_ATTEMPTS) {
       presentNetworkErrorAlert(usingPeer);
-    } else {
-      console.log('reconnection attempt #', connectionAttempt);
-      await new Promise(resolve => setTimeout(resolve, 500)); // sleep
-      return connectMain();
+      return;
     }
+    const delay = getBackoffDelay(connectionAttempt - 1, onion);
+    console.log('reconnection attempt #', connectionAttempt, 'in', delay, 'ms');
+    await new Promise(resolve => setTimeout(resolve, delay)); // sleep
   }
+}
+
+export function connectMain(): Promise<void> {
+  // de-duplicate concurrent callers (app start, error handlers, alerts) into one attempt
+  if (connectInFlight) return connectInFlight;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = undefined;
+  }
+  connectInFlight = connectMainInternal().finally(() => {
+    connectInFlight = undefined;
+  });
+  return connectInFlight;
 }
 
 export async function presentResetToDefaultsAlert(): Promise<boolean> {
@@ -576,7 +666,9 @@ export const ping = async function () {
     return true;
   } catch (_) {}
 
-  mainConnected = false;
+  // connection is dead: drop it and reconnect (backoff + de-duplication handled by scheduleReconnect)
+  teardownMainClient();
+  scheduleReconnect();
   return false;
 };
 
@@ -1253,7 +1345,11 @@ export const testConnection = async function (host: string, tcpPort?: number, ss
 };
 
 export const forceDisconnect = (): void => {
-  mainClient?.close();
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = undefined;
+  }
+  teardownMainClient();
 };
 
 export const setBatchingDisabled = () => {
