@@ -250,7 +250,7 @@ const UnlockWith: React.FC = () => {
         <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.contentContainer}>
             <View style={styles.logoContainer}>
-              <Image source={require('../img/icon.png')} style={styles.logoImage} resizeMode="contain" />
+              <Image source={require('../img/splash-logo.png')} style={styles.logoImage} resizeMode="contain" />
             </View>
             <View style={styles.biometricRow}>{renderUnlockOptions()}</View>
           </View>
@@ -263,6 +263,8 @@ const UnlockWith: React.FC = () => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    // match the native launch screen so the app loads on the same dark splash layout
+    backgroundColor: '#191919',
   },
   keyboardAvoidingView: {
     flex: 1,

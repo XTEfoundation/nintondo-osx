@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background color - white -->
-    <item android:drawable="@android:color/white" />
+    <!-- Background color - same dark tone as the iOS launch screen -->
+    <item android:drawable="@color/icon_background" />
 
     <!-- Centered splash icon -->
     <item>
