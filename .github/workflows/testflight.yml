@@ -4,6 +4,7 @@ name: TestFlight
 # App Store .ipa and uploaded to TestFlight. Upload happens only on a manual run
 # (Actions -> TestFlight -> Run workflow) with upload=true, or on a push to the PR branch whose head
 # commit message contains "[testflight-upload]"; other pushes archive only.
+# Note: such a commit must touch a file matched by the push `paths` filter below, or no run starts.
 #
 # Needs the repository secrets IOS_DIST_P12_BASE64, IOS_DIST_P12_PASSWORD,
 # IOS_PROFILE_BASE64, ASC_KEY_P8, ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID.
