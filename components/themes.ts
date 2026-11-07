@@ -1,5 +1,4 @@
 import { DarkTheme, DefaultTheme, useTheme as useThemeBase } from '@react-navigation/native';
-import { Appearance } from 'react-native';
 
 export const BlueDefaultTheme = {
   ...DefaultTheme,
@@ -90,12 +89,12 @@ export const BlueDarkTheme: Theme = {
     background: '#191919',
     foregroundColor: '#ffffff',
     buttonDisabledBackgroundColor: '#3A3A3C',
-    buttonBackgroundColor: '#68217A',
-    buttonTextColor: '#ffffff',
+    buttonBackgroundColor: '#C9A7F5',
+    buttonTextColor: '#191919',
     lightButton: 'rgba(255,255,255,.1)',
     buttonAlternativeTextColor: '#ffffff',
     alternativeTextColor: '#9aa0aa',
-    alternativeTextColor2: '#C586C0',
+    alternativeTextColor2: '#C9A7F5',
     ballReceive: '#202020',
     ballOutgoing: '#202020',
     lightBorder: '#313030',
@@ -114,7 +113,7 @@ export const BlueDarkTheme: Theme = {
     elevated: '#191919',
     mainColor: '#FF6B6B',
     success: '#51CF66',
-    successCheck: '#C586C0',
+    successCheck: '#C9A7F5',
     buttonBlueBackgroundColor: '#202020',
     scanLabel: 'rgba(255,255,255,.2)',
     labelText: '#ffffff',
@@ -141,7 +140,8 @@ export class BlueCurrentTheme {
   static scanImage: Theme['scanImage'];
 
   static updateColorScheme(): void {
-    const isColorSchemeDark = Appearance.getColorScheme() === 'dark';
+    // App always uses the dark palette (#191919 background), regardless of system appearance.
+    const isColorSchemeDark = true;
     BlueCurrentTheme.colors = isColorSchemeDark ? BlueDarkTheme.colors : BlueDefaultTheme.colors;
     BlueCurrentTheme.closeImage = isColorSchemeDark ? BlueDarkTheme.closeImage : BlueDefaultTheme.closeImage;
     BlueCurrentTheme.scanImage = isColorSchemeDark ? BlueDarkTheme.scanImage : BlueDefaultTheme.scanImage;

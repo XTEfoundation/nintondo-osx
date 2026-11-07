@@ -4,10 +4,8 @@ import {
   Alert,
   Keyboard,
   LayoutAnimation,
-  Platform,
   StyleSheet,
   TextInput,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -106,7 +104,6 @@ const WalletsAdd: React.FC = () => {
   const walletBaseURI = state.walletBaseURI;
   const label = state.label;
   const selectedWalletType = state.selectedWalletType;
-  const colorScheme = useColorScheme();
   //
   const { addWallet, saveToDisk } = useStorage();
   const { entropy: entropyHex, words } = useRoute<RouteProps>().params || {};
@@ -244,9 +241,9 @@ const WalletsAdd: React.FC = () => {
   useEffect(() => {
     setOptions({
       headerRight: () => HeaderRight,
-      statusBarStyle: Platform.select({ ios: 'light', default: colorScheme === 'dark' ? 'light' : 'dark' }),
+      statusBarStyle: 'light',
     });
-  }, [HeaderRight, colorScheme, colors.foregroundColor, setOptions, toolTipActions]);
+  }, [HeaderRight, colors.foregroundColor, setOptions, toolTipActions]);
 
   useEffect(() => {
     // Lightning removed - just set loading to false
