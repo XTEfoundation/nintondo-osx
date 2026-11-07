@@ -8,8 +8,6 @@ import loc from '../loc';
 import QRCodeComponent from './QRCodeComponent';
 import { BlueSpacing20 } from './BlueSpacing';
 
-const { height, width } = Dimensions.get('window');
-
 interface DynamicQRCodeProps {
   value: string;
   capacity?: number;
@@ -28,6 +26,9 @@ interface DynamicQRCodeState {
 export class DynamicQRCode extends Component<DynamicQRCodeProps, DynamicQRCodeState> {
   constructor(props: DynamicQRCodeProps) {
     super(props);
+    // Read the window size at mount time (not at module load) so iPad Split View / Stage Manager
+    // and rotations that happened after app start are respected.
+    const { height, width } = Dimensions.get('window');
     const qrCodeHeight = height > width ? width - 40 : width / 3;
     const qrCodeMaxHeight = 370;
     this.state = {

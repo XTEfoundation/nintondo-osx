@@ -103,15 +103,8 @@ interface FormatSelectorProps {
 }
 
 const FormatSelector: FC<FormatSelectorProps> = ({ format, onFormatChange, colors }) => {
-  const isP2wsh = useCallback(() => format === MultisigHDWallet.FORMAT_P2WSH, [format]);
-  const isP2shP2wsh = useCallback(
-    () => format === MultisigHDWallet.FORMAT_P2SH_P2WSH || format === MultisigHDWallet.FORMAT_P2SH_P2WSH_ALT,
-    [format],
-  );
   const isP2sh = useCallback(() => format === MultisigHDWallet.FORMAT_P2SH, [format]);
 
-  const setFormatP2wsh = useCallback(() => onFormatChange(MultisigHDWallet.FORMAT_P2WSH), [onFormatChange]);
-  const setFormatP2shP2wsh = useCallback(() => onFormatChange(MultisigHDWallet.FORMAT_P2SH_P2WSH), [onFormatChange]);
   const setFormatP2sh = useCallback(() => onFormatChange(MultisigHDWallet.FORMAT_P2SH), [onFormatChange]);
 
   const getItemStyle = useCallback(
